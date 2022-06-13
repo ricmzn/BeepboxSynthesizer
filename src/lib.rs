@@ -13,7 +13,8 @@ mod utils;
 const MAX_SAMPLES: usize = 1024 * 1024;
 
 const PLAYER_JS: &str = r#"
-    synth = new beepbox.Synth("9n31s1k0l00e01t27a7g01j07r1i0o432T1v0u01f10k8q0332d4aAcF8BcQ4200P6789E179T1v1ue1f0q0y10n73d4aA0F0B7Q0000Pe600E2bb619T1v1ue1f0q0y10n73d4aA0F0B7Q0000Pe600E2bb619T3v1uf9f0qwx10l511d08SW86bmhkrrzrkrrrE1b6b4x8x4wp21-IR-g1y-jRcLpjAXB5ekGhFE_97piPh-mVH-rXD2CIFOZpiZCzYk8MarnMyrz-p6CR-mlu1jq_FdvEU7lyna9KfYOtM2Czc6ngpt17honQAuwnQQ4swhQAqqYALOyc0");
+    // synth = new beepbox.Synth("9n31s1k0l00e01t27a7g01j07r1i0o432T1v0u01f10k8q0332d4aAcF8BcQ4200P6789E179T1v1ue1f0q0y10n73d4aA0F0B7Q0000Pe600E2bb619T1v1ue1f0q0y10n73d4aA0F0B7Q0000Pe600E2bb619T3v1uf9f0qwx10l511d08SW86bmhkrrzrkrrrE1b6b4x8x4wp21-IR-g1y-jRcLpjAXB5ekGhFE_97piPh-mVH-rXD2CIFOZpiZCzYk8MarnMyrz-p6CR-mlu1jq_FdvEU7lyna9KfYOtM2Czc6ngpt17honQAuwnQQ4swhQAqqYALOyc0");
+    synth = new beepbox.Synth("9n42s0k0l00e03t2ca7g0fj07r1i0o4323T1v1u97f0q0z10t231d4aA9F3B6Q5428Paa74E3ba63975T7v1ue8f10p9q023d19H-SstrsrBzjAqihh6IcE0T7v1u23f10q4q011d08H_RRtrAyAAAsArrh3IaE0T1v1u01f0q0z10t233d4aA9F3B5Q5428Paa74E4ba6397512T3v1u03f0q0x10v31d4aS999arAqirrzAT__E112T4v1uf0f0q011z6666ji8k8k3jSBKSJJAArriiiiii07JCABrzrrrrrrr00YrkqHrsrrrrjr005zrAqzrjzrrqr1jRjrqGGrrzsrsA099ijrABJJJIAzrrtirqrqjqixzsrAjrqjiqaqqysttAJqjikikrizrHtBJJAzArzrIsRCITKSS099ijrAJS____Qg99habbCAYrDzh00E0b52c00000000i4w000000018O0000000052c00000000h4g000000014h00000000p22oFKDVim3cTj-lwpcT7-WCzMqWrF-D4S5dvWjhYAu9p97Ao2hRitBD9p97Cp97CmpddBg5dWfHdPk1pKfNRiq_jPaPepzdPhcPBUPIjHeFKfZpeXuq5d6mcKwLAajbF8Wic1jnBAQo1t04tlmnBllAtlg0");
 "#;
 
 static REFERENCE_TIME: OnceCell<Instant> = OnceCell::new();
@@ -285,22 +286,23 @@ impl JSContext {
         Ok(context)
     }
 
-    fn run(&mut self, filename: &str, src: &str) -> Result<()> {
-        self.do_scoped(filename, &mut |scope| {
+    fn run(&mut self, filename: &str, src: &str) -> Result<Variant> {
+        self.do_scoped(filename, |scope| {
             // Build and run the script
             let src = v8::String::new(scope, src).context("could not build v8 string")?;
-            v8::Script::compile(scope, src, None)
+            let value = v8::Script::compile(scope, src, None)
                 .context("failed to compile script")?
-                .run(scope);
-            Ok(())
+                .run(scope)
+                .context("missing return value")?;
+            Ok(utils::v8_value_to_godot_variant(scope, value))
         })
     }
 
-    fn do_scoped(
-        &mut self,
+    fn do_scoped<'scope, T>(
+        &'scope mut self,
         filename: &str,
-        callback: &mut dyn FnMut(&mut v8::HandleScope) -> Result<()>,
-    ) -> Result<()> {
+        mut callback: impl FnMut(&mut v8::HandleScope<'scope>) -> Result<T>,
+    ) -> Result<T> {
         // "Raw" script scope
         let mut scope = v8::HandleScope::new(&mut self.isolate);
         let context = v8::Local::new(&mut scope, self.context.clone());
@@ -319,18 +321,18 @@ impl JSContext {
         let mut scope = v8::TryCatch::new(&mut scope);
 
         // Run user callback using the scope
-        callback(&mut scope)?;
+        let script_result = callback(&mut scope);
 
         if scope.has_caught() {
             let message = scope.message().context("could not extract error message")?;
-            return Err(anyhow!(
-                "JS error: {} ({filename}:{})",
+            return script_result.context(anyhow!(
+                "{} ({filename}:{})",
                 message.get(&mut scope).to_rust_string_lossy(&mut scope),
                 message.get_line_number(&mut scope).unwrap_or(0),
             ));
         }
 
-        Ok(())
+        script_result
     }
 }
 
@@ -383,7 +385,7 @@ impl Synthesizer {
     #[export]
     fn _process(&mut self, _: &AudioStreamPlayer, _: f32) {
         self.js
-            .do_scoped("_process", &mut |scope| {
+            .do_scoped("_process", |scope| {
                 let global = scope.get_current_context().global(scope);
                 let audio_context = global.get(scope, "activeAudioContext").unwrap();
                 if audio_context.is_undefined() {
@@ -427,8 +429,8 @@ impl Synthesizer {
     }
 
     #[export]
-    fn eval(&mut self, _: &AudioStreamPlayer, code: String) {
-        self.js.run("eval", &code).unwrap();
+    fn eval(&mut self, _: &AudioStreamPlayer, code: String) -> Variant {
+        self.js.run("eval", &code).unwrap()
     }
 }
 

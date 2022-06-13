@@ -1,4 +1,8 @@
 use anyhow::Context;
+use gdnative::{
+    core_types::{Dictionary, GodotString, Variant},
+    log::godot_print,
+};
 use std::convert::Into;
 
 pub(crate) trait V8ObjectHelpers {
@@ -38,5 +42,28 @@ impl<'a> V8ObjectHelpers for v8::Local<'a, v8::Object> {
         v8::Object::set(self, scope, key.into(), value.into())
             .context("failed to set value on object")?;
         Ok(())
+    }
+}
+
+pub(crate) fn v8_value_to_godot_variant(
+    scope: &mut v8::HandleScope,
+    value: v8::Local<v8::Value>,
+) -> Variant {
+    match value {
+        value if value.is_null_or_undefined() => Variant::nil(),
+        value if value.is_number() => Variant::new(value.number_value(scope)),
+        value if value.is_boolean() => Variant::new(value.boolean_value(scope)),
+        value if value.is_string() => {
+            Variant::new(GodotString::from(&value.to_rust_string_lossy(scope)))
+        }
+        value if value.is_object() => {
+            let dict = Dictionary::new();
+            godot_print!("TODO: js object -> dict conversion");
+            Variant::new(dict)
+        }
+        value => unimplemented!(
+            "value '{}' is of unsupported type",
+            value.to_rust_string_lossy(scope)
+        ),
     }
 }
