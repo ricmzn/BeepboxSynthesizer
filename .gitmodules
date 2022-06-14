@@ -1,0 +1,3 @@
+[submodule "dependencies/beepbox"]
+	path = dependencies/beepbox
+	url = https://github.com/johnnesky/beepbox.git

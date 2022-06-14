@@ -374,7 +374,7 @@ impl Synthesizer {
         self.js
             .run(
                 "beepbox_synth.js",
-                include_str!("../beepbox/website/beepbox_synth.js"),
+                include_str!("../dependencies/beepbox/website/beepbox_synth.js"),
             )
             .unwrap();
 
