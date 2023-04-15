@@ -1,0 +1,6 @@
+[configuration]
+entry_symbol = "gdext_rust_init"
+
+[libraries]
+linux.debug.x86_64 = "res://target/debug/libbeepbox_synthesizer.so"
+linux.release.x86_64 = "res://target/release/libbeepbox_synthesizer.so"

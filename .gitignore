@@ -1,6 +1,8 @@
 /target
 /Cargo.lock
+/.cargo
 /.import
+/.godot
 /.mono
 *.import
 *.dll

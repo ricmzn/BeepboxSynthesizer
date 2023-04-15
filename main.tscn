@@ -1,164 +1,60 @@
-[gd_scene load_steps=7 format=2]
+[gd_scene load_steps=6 format=3 uid="uid://dnbaexpgd127a"]
 
-[ext_resource path="res://beepbox_synthesizer.tres" type="GDNativeLibrary" id=1]
+[ext_resource type="Script" path="res://player.gd" id="1_wfwms"]
+[ext_resource type="Script" path="res://import.gd" id="2_pr67v"]
+[ext_resource type="Script" path="res://play_pause.gd" id="3_nv74c"]
+[ext_resource type="Script" path="res://toggle_channel.gd" id="4_6hrjy"]
 
-[sub_resource type="GDScript" id=4]
-script/source = "extends Container
-
-onready var buttonTemplate := $ToggleChannel
-onready var playButton := $PlayPause
-onready var player := $\"/root/Main/AudioStreamPlayer\"
-var buttons := []
-
-func _ready():
-	buttonTemplate.get_parent().remove_child(buttonTemplate)
-	update()
-
-func update():
-	for button in buttons:
-		button.queue_free()
-
-	buttons = []
-
-	if player.eval(\"typeof(synth) !== 'undefined' && synth.song != null\"):
-		playButton.disabled = false
-		var channels = player.eval(\"synth.song.channels.length\")
-		for i in range(channels):
-			var button = buttonTemplate.duplicate()
-			var instrumentName = player.eval(
-				\"beepbox.Config.instrumentTypeNames[synth.song.channels[%d].instruments[0].type]\" % i)
-			button.active = player.eval(\"synth.song.channels[%d].muted === false\" % i)
-			button.description = instrumentName
-			button.index = i
-			button.update_text()
-			buttons.append(button)
-			add_child(button)
-	else:
-		playButton.disabled = true
-"
-
-[sub_resource type="GDScript" id=5]
-script/source = "extends Button
-
-onready var fileDialog = $\"/root/Main/FileDialog\"
-onready var player = $\"/root/Main/AudioStreamPlayer\"
-onready var container = $\"/root/Main/CenterContainer/VBoxContainer\"
-
-func _on_Import_pressed():
-	fileDialog.popup()
-
-func _on_FileDialog_file_selected(path):
-	player.import(path)
-	container.update()
-"
-
-[sub_resource type="GDScript" id=2]
-script/source = "extends Button
-
-onready var stream = $\"/root/Main/AudioStreamPlayer\"
-var playing = false
-
-func _on_Button_pressed():
-	if playing:
-		stream.pause()
-		playing = false
-		text = \"Play\"
-	else:
-		stream.resume()
-		playing = true
-		text = \"Pause\"
-"
-
-[sub_resource type="GDScript" id=3]
-script/source = "extends Button
-
-onready var stream = $\"/root/Main/AudioStreamPlayer\"
-onready var initial_text = text
-var description = \"\"
-var active = true
-var index = 0
-
-func update_text():
-	text = \"Toggle Channel %d\" % index
-	hint_tooltip = description
-	if not active:
-		text = \"%s [M]\" % text
-
-func _ready():
-	update_text()
-
-func _on_Button_pressed():
-	if active:
-		stream.eval(\"synth.song.channels[%d].muted = true\" % index)
-		active = false
-		update_text()
-	else:
-		stream.eval(\"synth.song.channels[%d].muted = false\" % index)
-		active = true
-		update_text()
-"
-
-[sub_resource type="NativeScript" id=1]
-resource_name = "Synthesizer"
-class_name = "Synthesizer"
-library = ExtResource( 1 )
+[sub_resource type="AudioStreamGenerator" id="AudioStreamGenerator_8yxxe"]
+buffer_length = 0.1
 
 [node name="Main" type="Control"]
+layout_mode = 3
+anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 
 [node name="CenterContainer" type="CenterContainer" parent="."]
+layout_mode = 0
 anchor_right = 1.0
 anchor_bottom = 1.0
 
 [node name="VBoxContainer" type="VBoxContainer" parent="CenterContainer"]
-margin_left = 362.0
-margin_top = 250.0
-margin_right = 662.0
-margin_bottom = 350.0
-rect_min_size = Vector2( 300, 0 )
-custom_constants/separation = 20
-script = SubResource( 4 )
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+theme_override_constants/separation = 20
+script = ExtResource("1_wfwms")
 
 [node name="Import" type="Button" parent="CenterContainer/VBoxContainer"]
-margin_right = 300.0
-margin_bottom = 20.0
+layout_mode = 2
 text = "Import JSON..."
-script = SubResource( 5 )
+script = ExtResource("2_pr67v")
 
 [node name="PlayPause" type="Button" parent="CenterContainer/VBoxContainer"]
-margin_top = 40.0
-margin_right = 300.0
-margin_bottom = 60.0
+layout_mode = 2
 text = "Play"
-script = SubResource( 2 )
+script = ExtResource("3_nv74c")
 
 [node name="ToggleChannel" type="Button" parent="CenterContainer/VBoxContainer"]
-margin_top = 80.0
-margin_right = 300.0
-margin_bottom = 100.0
+layout_mode = 2
 text = "Toggle Channel X"
-script = SubResource( 3 )
+script = ExtResource("4_6hrjy")
 
 [node name="FileDialog" type="FileDialog" parent="."]
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-margin_left = -400.0
-margin_top = -250.0
-margin_right = 400.0
-margin_bottom = 250.0
-rect_min_size = Vector2( 800, 500 )
-mode = 0
-access = 2
-filters = PoolStringArray( "*.json" )
-current_dir = "/Users/ricmz/OneDrive/Documents/BeepboxSynthesizer"
-current_path = "/Users/ricmz/OneDrive/Documents/BeepboxSynthesizer/"
+initial_position = 1
+title = "Open a File"
+size = Vector2i(900, 600)
+mode = 2
+ok_button_text = "Open"
+file_mode = 0
+filters = PackedStringArray("*.json")
 
-[node name="AudioStreamPlayer" type="AudioStreamPlayer" parent="."]
+[node name="Synthesizer" type="Synthesizer" parent="."]
+stream = SubResource("AudioStreamGenerator_8yxxe")
 volume_db = -25.0
-script = SubResource( 1 )
+autoplay = true
 
 [connection signal="pressed" from="CenterContainer/VBoxContainer/Import" to="CenterContainer/VBoxContainer/Import" method="_on_Import_pressed"]
 [connection signal="pressed" from="CenterContainer/VBoxContainer/PlayPause" to="CenterContainer/VBoxContainer/PlayPause" method="_on_Button_pressed"]

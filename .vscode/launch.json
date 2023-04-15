@@ -5,42 +5,19 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Play in Editor",
-            "type": "godot-mono",
-            "mode": "playInEditor",
-            "request": "launch"
-        },
-        {
-            "name": "Launch",
-            "type": "godot-mono",
+            "type": "lldb",
             "request": "launch",
-            "mode": "executable",
-            "preLaunchTask": "build",
-            "executable": "C:/Users/ricmz/Godot.exe",
-            "executableArguments": [
+            "name": "Debug Editor (Custom build)",
+            "program": "~/godot/bin/godot.linuxbsd.editor.x86_64",
+            "args": [
                 "--path",
-                "${workspaceRoot}"
-            ]
-        },
-        {
-            "name": "Launch (Select Scene)",
-            "type": "godot-mono",
-            "request": "launch",
-            "mode": "executable",
-            "preLaunchTask": "build",
-            "executable": "C:/Users/ricmz/Godot.exe",
-            "executableArguments": [
-                "--path",
-                "${workspaceRoot}",
-                "${command:SelectLaunchScene}"
-            ]
-        },
-        {
-            "name": "Attach",
-            "type": "godot-mono",
-            "request": "attach",
-            "address": "localhost",
-            "port": 23685
+                "${workspaceFolder}",
+                "--editor"
+            ],
+            "cwd": "${workspaceFolder}",
+            "internalConsoleOptions": "openOnSessionStart",
+            "terminal": "console",
+            "preLaunchTask": "rust: cargo build"
         }
     ]
 }

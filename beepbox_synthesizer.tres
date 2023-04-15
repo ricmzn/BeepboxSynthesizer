@@ -1,5 +1,0 @@
-[gd_resource type="GDNativeLibrary" format=2]
-
-[resource]
-entry/Windows.64 = "res://target/debug/beepbox_synthesizer.dll"
-dependency/Windows.64 = [  ]

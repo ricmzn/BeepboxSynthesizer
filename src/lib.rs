@@ -1,8 +1,11 @@
 use std::{fs::read_to_string, time::Instant};
 
 use anyhow::{anyhow, Context, Result};
-use gdnative::{
-    api::{AudioStreamGenerator, AudioStreamGeneratorPlayback, AudioStreamPlayer},
+use godot::engine::class_macros::auto_register_classes;
+use godot::engine::file_access::ModeFlags;
+use godot::engine::FileAccess;
+use godot::{
+    engine::{AudioStreamGenerator, AudioStreamGeneratorPlayback, AudioStreamPlayer},
     prelude::*,
 };
 use once_cell::sync::OnceCell;
@@ -143,12 +146,12 @@ fn new_audio_context(
     ret.set(audio_context.into());
 }
 
-fn poll_audio<'scope>(
-    scope: &mut v8::HandleScope<'scope>,
+fn poll_audio(
+    scope: &mut v8::HandleScope,
     required_samples: usize,
     audio_context: v8::Local<v8::Object>,
     script_processor: v8::Local<v8::Object>,
-    buffer: &mut Vector2Array,
+    buffer: &mut PackedVector2Array,
 ) -> Result<()> {
     let audio_process_callback: v8::Local<v8::Function> =
         script_processor.get(scope, "onaudioprocess")?.try_into()?;
@@ -176,7 +179,7 @@ fn poll_audio<'scope>(
     // Transform JS audio output (individual channel streams) into Godot sound data (interleaved stereo stream)
     for i in 0..required_samples {
         buffer.set(
-            i as i32,
+            i,
             Vector2::new(
                 left_channel_buffer
                     .get_index(scope, i as u32)
@@ -230,10 +233,6 @@ struct JSContext {
 
 impl JSContext {
     fn new() -> Result<JSContext> {
-        let platform = v8::new_default_platform(0, false).make_shared();
-        v8::V8::initialize_platform(platform);
-        v8::V8::initialize();
-
         // Create the V8 sandbox
         let mut isolate = v8::Isolate::new(Default::default());
         let context = {
@@ -294,6 +293,47 @@ impl JSContext {
         })
     }
 
+    // FIXME: Workaround for https://github.com/godot-rust/gdext/issues/159
+    fn run_bool(&mut self, filename: &str, src: &str) -> Result<bool> {
+        self.do_scoped(filename, |scope| {
+            // Build and run the script
+            let src = v8::String::new(scope, src).context("could not build v8 string")?;
+            let value = v8::Script::compile(scope, src, None)
+                .context("failed to compile script")?
+                .run(scope)
+                .context("missing return value")?;
+            Ok(value.boolean_value(scope))
+        })
+    }
+
+    // FIXME: Workaround for https://github.com/godot-rust/gdext/issues/159
+    fn run_int(&mut self, filename: &str, src: &str) -> Result<i64> {
+        self.do_scoped(filename, |scope| {
+            // Build and run the script
+            let src = v8::String::new(scope, src).context("could not build v8 string")?;
+            let value = v8::Script::compile(scope, src, None)
+                .context("failed to compile script")?
+                .run(scope)
+                .context("missing return value")?;
+            value
+                .integer_value(scope)
+                .ok_or(anyhow!("value is not a number"))
+        })
+    }
+
+    // FIXME: Workaround for https://github.com/godot-rust/gdext/issues/159
+    fn run_string(&mut self, filename: &str, src: &str) -> Result<String> {
+        self.do_scoped(filename, |scope| {
+            // Build and run the script
+            let src = v8::String::new(scope, src).context("could not build v8 string")?;
+            let value = v8::Script::compile(scope, src, None)
+                .context("failed to compile script")?
+                .run(scope)
+                .context("missing return value")?;
+            Ok(value.to_rust_string_lossy(scope))
+        })
+    }
+
     fn do_scoped<'scope, T>(
         &'scope mut self,
         filename: &str,
@@ -332,111 +372,45 @@ impl JSContext {
     }
 }
 
-#[derive(NativeClass)]
-#[inherit(AudioStreamPlayer)]
+#[derive(GodotClass)]
+#[class(base = AudioStreamPlayer)]
 pub struct Synthesizer {
-    playback: Ref<AudioStreamGeneratorPlayback>,
-    buffer: Vector2Array,
+    #[base]
+    base: Base<AudioStreamPlayer>,
+    buffer: PackedVector2Array,
     js: JSContext,
 }
 
-#[methods]
+#[godot_api]
 impl Synthesizer {
-    fn new(owner: &AudioStreamPlayer) -> Self {
-        // Set up Godot audio player
-        let generator = AudioStreamGenerator::new();
-        generator.set_mix_rate(44100.0);
-        generator.set_buffer_length(0.1);
-        owner.set_stream(generator.into_shared());
-
-        let playback = owner
-            .get_stream_playback()
-            .expect("stream playback is missing")
-            .cast()
-            .expect("stream playback is not an instance of AudioStreamGeneratorPlayback");
-
-        let mut buffer = Vector2Array::new();
-        buffer.resize(MAX_SAMPLES as i32);
-
-        Synthesizer {
-            playback,
-            buffer,
-            js: JSContext::new().expect("failed to create js context"),
-        }
-    }
-
-    #[export]
-    fn _ready(&mut self, owner: &AudioStreamPlayer) {
+    #[func]
+    fn resume(&mut self) {
         self.js
-            .run(
-                "beepbox_synth.js",
-                include_str!("../dependencies/beepbox/website/beepbox_synth.js"),
-            )
-            .unwrap();
-
-        self.js
-            .run("synth_init", SYNTH_INIT)
-            .expect("failed to initialize synthethizer");
-        owner.play(0.0);
-    }
-
-    #[export]
-    fn _process(&mut self, _: &AudioStreamPlayer, _: f32) {
-        self.js
-            .do_scoped("_process", |scope| {
-                let global = scope.get_current_context().global(scope);
-                let audio_context = global.get(scope, "activeAudioContext").unwrap();
-                if audio_context.is_undefined() {
-                    return Ok(());
-                }
-                let audio_context: v8::Local<v8::Object> = audio_context.try_into().unwrap();
-                let script_processor: v8::Local<v8::Object> =
-                    audio_context.get(scope, "scriptProcessor")?.try_into()?;
-
-                // Ask godot how much data needs to be filled
-                let playback = unsafe { self.playback.assume_safe() };
-                let required_samples = playback.get_frames_available() as usize;
-
-                // Pull data from Beepbox
-                poll_audio(
-                    scope,
-                    required_samples,
-                    audio_context,
-                    script_processor,
-                    &mut self.buffer,
-                )?;
-
-                // Fill Godot's sound buffer
-                for i in 0..required_samples {
-                    playback.push_frame(self.buffer.get(i as i32));
-                }
-
-                Ok(())
-            })
+            .run("resume", "synth.resetEffects(); synth.play()")
             .unwrap();
     }
 
-    #[export]
-    fn resume(&mut self, _: &AudioStreamPlayer) {
-        self.js.run("resume", "synth.resetEffects(); synth.play()").unwrap();
+    #[func]
+    fn pause(&mut self) {
+        self.js.run("pause", "synth.pause()").unwrap();
     }
 
-    #[export]
-    fn pause(&mut self, _: &AudioStreamPlayer) {
-        self.js
-            .run("pause", "synth.pause()")
-            .unwrap();
-    }
-
-    #[export]
-    fn import(&mut self, _: &AudioStreamPlayer, path: String) {
+    #[func]
+    fn import(&mut self, path: GodotString) {
         self.js
             .do_scoped("", |scope| {
-                let file =
-                    read_to_string(&path).with_context(|| format!("could not read {path}"))?;
+                let path = path.to_string();
+                let contents = if path.starts_with("res://") {
+                    FileAccess::open(path.clone().into(), ModeFlags::READ)
+                        .with_context(|| format!("failed to open {path}"))?
+                        .get_as_text(true)
+                        .to_string()
+                } else {
+                    read_to_string(&path).with_context(|| format!("could not read {path}"))?
+                };
 
                 let json_string =
-                    v8::String::new(scope, &file).context("could not build v8 string")?;
+                    v8::String::new(scope, &contents).context("could not build v8 string")?;
 
                 let synth: v8::Local<v8::Object> = scope
                     .get_current_context()
@@ -455,21 +429,150 @@ impl Synthesizer {
             .unwrap();
     }
 
-    #[export]
-    fn eval(&mut self, _: &AudioStreamPlayer, code: String) -> Variant {
-        self.js.run("eval", &code).unwrap()
+    #[func]
+    fn eval(&mut self, code: GodotString) -> Variant {
+        // FIXME: Workaround for https://github.com/godot-rust/gdext/issues/195
+        let code = std::mem::ManuallyDrop::new(code);
+        self.js.run("eval_bool", &code.to_string()).unwrap()
+    }
+
+    #[func]
+    fn eval_bool(&mut self, code: GodotString) -> bool {
+        // FIXME: Workaround for https://github.com/godot-rust/gdext/issues/195
+        let code = std::mem::ManuallyDrop::new(code);
+        self.js.run_bool("eval_bool", &code.to_string()).unwrap()
+    }
+
+    #[func]
+    fn eval_int(&mut self, code: GodotString) -> i64 {
+        // FIXME: Workaround for https://github.com/godot-rust/gdext/issues/195
+        let code = std::mem::ManuallyDrop::new(code);
+        self.js.run_int("eval_int", &code.to_string()).unwrap()
+    }
+
+    #[func]
+    fn eval_string(&mut self, code: GodotString) -> GodotString {
+        // FIXME: Workaround for https://github.com/godot-rust/gdext/issues/195
+        let code = std::mem::ManuallyDrop::new(code);
+        let rust_string = self
+            .js
+            .run_string("eval_string", &code.to_string())
+            .unwrap();
+        GodotString::from(rust_string)
     }
 }
 
-fn init(handle: InitHandle) {
-    std::env::set_var("RUST_LIB_BACKTRACE", "1");
-    std::panic::set_hook(Box::new(|info| {
-        // let backtrace = Backtrace::new();
-        // godot_error!("{info}\n{backtrace:?}");
-        godot_print!("{info}");
-    }));
-    REFERENCE_TIME.set(Instant::now()).unwrap();
-    handle.add_class::<Synthesizer>();
+#[godot_api]
+impl AudioStreamPlayerVirtual for Synthesizer {
+    fn init(mut base: Base<AudioStreamPlayer>) -> Self {
+        // Set up Godot audio player
+        let mut generator = AudioStreamGenerator::new();
+        generator.set_mix_rate(44100.0);
+        generator.set_buffer_length(0.1);
+        base.set_stream(generator.upcast());
+
+        let mut buffer = PackedVector2Array::new();
+        buffer.resize(MAX_SAMPLES);
+
+        Synthesizer {
+            base,
+            buffer,
+            js: JSContext::new().expect("failed to create js context"),
+        }
+    }
+
+    fn ready(&mut self) {
+        self.js
+            .run(
+                "beepbox_synth.js",
+                include_str!("../dependencies/beepbox/website/beepbox_synth.js"),
+            )
+            .unwrap();
+
+        self.js
+            .run("synth_init", SYNTH_INIT)
+            .expect("failed to initialize synthethizer");
+
+        self.base.play(0.0);
+    }
+
+    fn process(&mut self, _delta: f64) {
+        if !self.has_stream_playback() {
+            return;
+        }
+
+        let mut playback = self
+            .get_stream_playback()
+            .context("stream playback is missing")
+            .unwrap()
+            .try_cast::<AudioStreamGeneratorPlayback>()
+            .context("stream playback is not an instance of AudioStreamGeneratorPlayback")
+            .unwrap();
+
+        let result = self.js.do_scoped("_process", |scope| {
+            let global = scope.get_current_context().global(scope);
+            let audio_context = global.get(scope, "activeAudioContext").unwrap();
+            if audio_context.is_undefined() {
+                return Ok(());
+            }
+            let audio_context: v8::Local<v8::Object> = audio_context.try_into().unwrap();
+            let script_processor: v8::Local<v8::Object> =
+                audio_context.get(scope, "scriptProcessor")?.try_into()?;
+
+            // Ask godot how much data needs to be filled
+            let required_samples = playback.get_frames_available() as usize;
+
+            // Pull data from Beepbox
+            poll_audio(
+                scope,
+                required_samples,
+                audio_context,
+                script_processor,
+                &mut self.buffer,
+            )?;
+
+            // Fill Godot's sound buffer
+            for i in 0..required_samples {
+                playback.push_frame(self.buffer.get(i));
+            }
+
+            Ok(())
+        });
+
+        if let Err(error) = result {
+            godot_error!("error in Synthesizer::process: {error}");
+        }
+    }
 }
 
-godot_init!(init);
+fn init_v8() {
+    let platform = v8::new_default_platform(0, false).make_shared();
+    v8::V8::initialize_platform(platform);
+    v8::V8::initialize();
+}
+
+struct BeepboxSynthesizer;
+
+struct Init;
+
+impl ExtensionLayer for Init {
+    fn initialize(&mut self) {
+        auto_register_classes();
+    }
+
+    fn deinitialize(&mut self) {}
+}
+
+#[gdextension]
+unsafe impl ExtensionLibrary for BeepboxSynthesizer {
+    fn load_library(handle: &mut InitHandle) -> bool {
+        std::env::set_var("RUST_LIB_BACKTRACE", "1");
+        std::panic::set_hook(Box::new(|info| {
+            godot_print!("{info}");
+        }));
+        REFERENCE_TIME.set(Instant::now()).unwrap();
+        handle.register_layer(InitLevel::Scene, Init);
+        init_v8();
+        true
+    }
+}
