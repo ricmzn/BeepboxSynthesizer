@@ -293,47 +293,6 @@ impl JSContext {
         })
     }
 
-    // FIXME: Workaround for https://github.com/godot-rust/gdext/issues/159
-    fn run_bool(&mut self, filename: &str, src: &str) -> Result<bool> {
-        self.do_scoped(filename, |scope| {
-            // Build and run the script
-            let src = v8::String::new(scope, src).context("could not build v8 string")?;
-            let value = v8::Script::compile(scope, src, None)
-                .context("failed to compile script")?
-                .run(scope)
-                .context("missing return value")?;
-            Ok(value.boolean_value(scope))
-        })
-    }
-
-    // FIXME: Workaround for https://github.com/godot-rust/gdext/issues/159
-    fn run_int(&mut self, filename: &str, src: &str) -> Result<i64> {
-        self.do_scoped(filename, |scope| {
-            // Build and run the script
-            let src = v8::String::new(scope, src).context("could not build v8 string")?;
-            let value = v8::Script::compile(scope, src, None)
-                .context("failed to compile script")?
-                .run(scope)
-                .context("missing return value")?;
-            value
-                .integer_value(scope)
-                .ok_or(anyhow!("value is not a number"))
-        })
-    }
-
-    // FIXME: Workaround for https://github.com/godot-rust/gdext/issues/159
-    fn run_string(&mut self, filename: &str, src: &str) -> Result<String> {
-        self.do_scoped(filename, |scope| {
-            // Build and run the script
-            let src = v8::String::new(scope, src).context("could not build v8 string")?;
-            let value = v8::Script::compile(scope, src, None)
-                .context("failed to compile script")?
-                .run(scope)
-                .context("missing return value")?;
-            Ok(value.to_rust_string_lossy(scope))
-        })
-    }
-
     fn do_scoped<'scope, T>(
         &'scope mut self,
         filename: &str,
@@ -434,31 +393,6 @@ impl Synthesizer {
         // FIXME: Workaround for https://github.com/godot-rust/gdext/issues/195
         let code = std::mem::ManuallyDrop::new(code);
         self.js.run("eval_bool", &code.to_string()).unwrap()
-    }
-
-    #[func]
-    fn eval_bool(&mut self, code: GodotString) -> bool {
-        // FIXME: Workaround for https://github.com/godot-rust/gdext/issues/195
-        let code = std::mem::ManuallyDrop::new(code);
-        self.js.run_bool("eval_bool", &code.to_string()).unwrap()
-    }
-
-    #[func]
-    fn eval_int(&mut self, code: GodotString) -> i64 {
-        // FIXME: Workaround for https://github.com/godot-rust/gdext/issues/195
-        let code = std::mem::ManuallyDrop::new(code);
-        self.js.run_int("eval_int", &code.to_string()).unwrap()
-    }
-
-    #[func]
-    fn eval_string(&mut self, code: GodotString) -> GodotString {
-        // FIXME: Workaround for https://github.com/godot-rust/gdext/issues/195
-        let code = std::mem::ManuallyDrop::new(code);
-        let rust_string = self
-            .js
-            .run_string("eval_string", &code.to_string())
-            .unwrap();
-        GodotString::from(rust_string)
     }
 }
 
