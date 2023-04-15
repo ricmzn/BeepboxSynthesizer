@@ -1,4 +1,4 @@
-This project uses a custom Rust-based GDExtension library to run the Beepbox synthesizer within Godot, using V8.
+This project uses a custom Rust-based GDExtension library to run the Beepbox synthesizer within Godot 4, using V8.
 
 The primary goal is to allow use of smaller music files, as well as experimentation with procedural music (using Beepbox's JavaScript API).
 
