@@ -256,11 +256,6 @@ impl JSContext {
                 performance.into(),
             );
 
-            global.set(
-                v8::String::new(&mut scope, "oerformance").unwrap().into(),
-                performance.into(),
-            );
-
             let context = v8::Context::new_from_template(&mut scope, global);
 
             // Wrap the context in a global object so its lifetime is unbound
