@@ -477,6 +477,10 @@ impl AudioStreamPlayerVirtual for Synthesizer {
             godot_error!("error in Synthesizer::process: {error}");
         }
     }
+
+    fn exit_tree(&mut self) {
+        self.pause();
+    }
 }
 
 fn init_v8() {
