@@ -10,4 +10,5 @@ func _on_Import_pressed():
 
 func _on_FileDialog_file_selected(path: String):
 	synth.import(path)
-	container.update(synth)
+	container.synth = synth
+	container.update()

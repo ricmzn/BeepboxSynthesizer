@@ -42,6 +42,21 @@ layout_mode = 2
 text = "Toggle Channel X"
 script = ExtResource("4_6hrjy")
 
+[node name="BPMLabel" type="Label" parent="CenterContainer/VBoxContainer"]
+layout_mode = 2
+text = "Beats per Minute: 0"
+horizontal_alignment = 1
+
+[node name="BPMSlider" type="HSlider" parent="CenterContainer/VBoxContainer"]
+layout_mode = 2
+min_value = 88.0
+max_value = 259.0
+value = 88.0
+ticks_on_borders = true
+
+[node name="ProgressBar" type="ProgressBar" parent="CenterContainer/VBoxContainer"]
+layout_mode = 2
+
 [node name="FileDialog" type="FileDialog" parent="."]
 initial_position = 1
 title = "Open a File"
