@@ -1,9 +1,10 @@
-[gd_scene load_steps=6 format=3 uid="uid://dnbaexpgd127a"]
+[gd_scene load_steps=7 format=3 uid="uid://dnbaexpgd127a"]
 
 [ext_resource type="Script" path="res://player.gd" id="1_wfwms"]
 [ext_resource type="Script" path="res://import.gd" id="2_pr67v"]
 [ext_resource type="Script" path="res://play_pause.gd" id="3_nv74c"]
 [ext_resource type="Script" path="res://toggle_channel.gd" id="4_6hrjy"]
+[ext_resource type="Texture2D" uid="uid://2spb8jkh7yl7" path="res://space.png" id="5_g7wbr"]
 
 [sub_resource type="AudioStreamGenerator" id="AudioStreamGenerator_8yxxe"]
 buffer_length = 0.1
@@ -15,6 +16,18 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+
+[node name="TextureRect" type="TextureRect" parent="."]
+modulate = Color(0.541176, 0.541176, 0.541176, 0.823529)
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("5_g7wbr")
+expand_mode = 1
+stretch_mode = 6
 
 [node name="ScrollContainer" type="ScrollContainer" parent="."]
 layout_mode = 1
