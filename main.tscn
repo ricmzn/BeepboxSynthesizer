@@ -21,40 +21,44 @@ layout_mode = 0
 anchor_right = 1.0
 anchor_bottom = 1.0
 
-[node name="VBoxContainer" type="VBoxContainer" parent="CenterContainer"]
+[node name="MediaPlayer" type="VBoxContainer" parent="CenterContainer"]
 custom_minimum_size = Vector2(300, 0)
 layout_mode = 2
 theme_override_constants/separation = 20
 script = ExtResource("1_wfwms")
 
-[node name="Import" type="Button" parent="CenterContainer/VBoxContainer"]
+[node name="Import" type="Button" parent="CenterContainer/MediaPlayer"]
 layout_mode = 2
 text = "Import JSON..."
 script = ExtResource("2_pr67v")
 
-[node name="PlayPause" type="Button" parent="CenterContainer/VBoxContainer"]
+[node name="PlayPause" type="Button" parent="CenterContainer/MediaPlayer"]
 layout_mode = 2
 text = "Play"
 script = ExtResource("3_nv74c")
 
-[node name="ToggleChannel" type="Button" parent="CenterContainer/VBoxContainer"]
+[node name="ChannelButtons" type="VBoxContainer" parent="CenterContainer/MediaPlayer"]
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="ToggleChannel" type="Button" parent="CenterContainer/MediaPlayer/ChannelButtons"]
 layout_mode = 2
 text = "Toggle Channel X"
 script = ExtResource("4_6hrjy")
 
-[node name="BPMLabel" type="Label" parent="CenterContainer/VBoxContainer"]
+[node name="BPMLabel" type="Label" parent="CenterContainer/MediaPlayer"]
 layout_mode = 2
 text = "Beats per Minute: 0"
 horizontal_alignment = 1
 
-[node name="BPMSlider" type="HSlider" parent="CenterContainer/VBoxContainer"]
+[node name="BPMSlider" type="HSlider" parent="CenterContainer/MediaPlayer"]
 layout_mode = 2
 min_value = 88.0
 max_value = 259.0
 value = 88.0
 ticks_on_borders = true
 
-[node name="ProgressBar" type="ProgressBar" parent="CenterContainer/VBoxContainer"]
+[node name="ProgressBar" type="ProgressBar" parent="CenterContainer/MediaPlayer"]
 layout_mode = 2
 
 [node name="FileDialog" type="FileDialog" parent="."]
@@ -71,7 +75,7 @@ stream = SubResource("AudioStreamGenerator_8yxxe")
 volume_db = -25.0
 autoplay = true
 
-[connection signal="pressed" from="CenterContainer/VBoxContainer/Import" to="CenterContainer/VBoxContainer/Import" method="_on_Import_pressed"]
-[connection signal="pressed" from="CenterContainer/VBoxContainer/PlayPause" to="CenterContainer/VBoxContainer/PlayPause" method="_on_Button_pressed"]
-[connection signal="pressed" from="CenterContainer/VBoxContainer/ToggleChannel" to="CenterContainer/VBoxContainer/ToggleChannel" method="_on_Button_pressed"]
-[connection signal="file_selected" from="FileDialog" to="CenterContainer/VBoxContainer/Import" method="_on_FileDialog_file_selected"]
+[connection signal="pressed" from="CenterContainer/MediaPlayer/Import" to="CenterContainer/MediaPlayer/Import" method="_on_Import_pressed"]
+[connection signal="pressed" from="CenterContainer/MediaPlayer/PlayPause" to="CenterContainer/MediaPlayer/PlayPause" method="_on_Button_pressed"]
+[connection signal="pressed" from="CenterContainer/MediaPlayer/ChannelButtons/ToggleChannel" to="CenterContainer/MediaPlayer/ChannelButtons/ToggleChannel" method="_on_Button_pressed"]
+[connection signal="file_selected" from="FileDialog" to="CenterContainer/MediaPlayer/Import" method="_on_FileDialog_file_selected"]

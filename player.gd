@@ -1,13 +1,14 @@
 extends Container
 
-@onready var buttonTemplate: Button = $ToggleChannel
+@onready var synth: Synthesizer = $"/root/Main/Synthesizer"
+
+@onready var buttons: Container = $ChannelButtons
+@onready var buttonTemplate: Button = $ChannelButtons/ToggleChannel
+
 @onready var playButton: Button = $PlayPause
 @onready var bpmLabel: Label = $BPMLabel
 @onready var bpmSlider: Slider = $BPMSlider
 @onready var progress: ProgressBar = $ProgressBar
-
-var buttons: Array[Button] = []
-var synth: Synthesizer
 
 func _ready():
 	buttonTemplate.get_parent().remove_child(buttonTemplate)
@@ -15,10 +16,8 @@ func _ready():
 	update()
 
 func update():
-	for button in buttons:
+	for button in buttons.get_children():
 		button.queue_free()
-
-	buttons = []
 
 	if synth != null and synth.eval("typeof(synth) !== 'undefined' && synth.song != null"):
 		playButton.synth = synth
@@ -33,14 +32,13 @@ func update():
 			button.index = i
 			button.synth = synth
 			button.update_text()
-			buttons.append(button)
-			playButton.add_sibling(button, true)
+			buttons.add_child(button, true)
 			update_bpm()
 	else:
 		playButton.disabled = true
 
 func _physics_process(delta):
-	if synth != null:
+	if synth != null and synth.eval("synth.song != null"):
 		progress.value = synth.eval("synth.playhead") / synth.eval("synth.song.barCount") * 100
 
 func update_bpm():
