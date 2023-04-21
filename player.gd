@@ -1,6 +1,6 @@
 extends Container
 
-@onready var synth: Synthesizer = $"/root/Main/Synthesizer"
+@onready var synth: Synthesizer = %Synthesizer
 
 @onready var buttons: Container = $ChannelButtons
 @onready var buttonTemplate: Button = $ChannelButtons/ToggleChannel

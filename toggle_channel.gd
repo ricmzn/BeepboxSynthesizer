@@ -1,6 +1,6 @@
 extends Button
 
-@onready var synth: Synthesizer = $"/root/Main/Synthesizer"
+@onready var synth: Synthesizer = %Synthesizer
 @onready var initial_text = text
 
 var description = ""

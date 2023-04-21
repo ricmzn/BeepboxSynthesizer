@@ -1,6 +1,6 @@
 extends Button
 
-@onready var synth: Synthesizer = $"/root/Main/Synthesizer"
+@onready var synth: Synthesizer = %Synthesizer
 
 var playing = false
 
