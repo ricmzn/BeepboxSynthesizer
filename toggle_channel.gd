@@ -1,8 +1,8 @@
 extends Button
 
-@onready var synth: Synthesizer = %Synthesizer
 @onready var initial_text = text
 
+var synth: Synthesizer
 var description = ""
 var active = true
 var index = 0

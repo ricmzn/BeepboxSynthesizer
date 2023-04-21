@@ -32,7 +32,7 @@ func update():
 			button.index = i
 			button.synth = synth
 			button.update_text()
-			buttons.add_child(button, true)
+			buttons.add_child(button)
 			update_bpm()
 	else:
 		playButton.disabled = true
