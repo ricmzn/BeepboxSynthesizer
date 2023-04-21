@@ -50,9 +50,7 @@ pub(crate) fn v8_value_to_godot_variant(
         value if value.is_null_or_undefined() => Variant::nil(),
         value if value.is_number() => Variant::from(value.number_value(scope).unwrap()),
         value if value.is_boolean() => Variant::from(value.boolean_value(scope)),
-        value if value.is_string() => {
-            Variant::from(value.to_rust_string_lossy(scope))
-        }
+        value if value.is_string() => Variant::from(value.to_rust_string_lossy(scope)),
         value if value.is_object() => {
             let dict = Dictionary::new();
             godot_warn!("TODO: js object -> dict conversion");
