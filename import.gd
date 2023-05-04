@@ -11,3 +11,7 @@ func _on_Import_pressed():
 func _on_FileDialog_file_selected(path: String):
 	synth.import(path)
 	player.update()
+
+func _on_url_entry_text_submitted(url: String):
+	synth.eval("synth.setSong(\"%s\")" % url)
+	player.update()

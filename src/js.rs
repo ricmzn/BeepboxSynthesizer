@@ -236,6 +236,16 @@ impl JSContext {
                 v8::FunctionTemplate::new(&mut scope, new_audio_context).into(),
             );
 
+            global.set(
+                v8::String::new(&mut scope, "navigator").unwrap().into(),
+                v8::ObjectTemplate::new(&mut scope).into(),
+            );
+
+            global.set(
+                v8::String::new(&mut scope, "document").unwrap().into(),
+                v8::ObjectTemplate::new(&mut scope).into(),
+            );
+
             let performance = v8::ObjectTemplate::new(&mut scope);
             let performance_now = v8::FunctionTemplate::new(&mut scope, performance_now);
             performance.set(

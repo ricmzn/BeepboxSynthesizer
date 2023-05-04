@@ -1,9 +1,8 @@
-[submodule "dependencies/beepbox"]
-	path = dependencies/beepbox
-	url = https://github.com/johnnesky/beepbox.git
-	branch = main
-
 [submodule "dependencies/godot4-prebuilt"]
 	path = dependencies/godot4-prebuilt
 	url = https://github.com/godot-rust/godot4-prebuilt
 	branch = 4.0.2
+
+[submodule "dependencies/jummbox"]
+	path = dependencies/jummbox
+	url = https://github.com/jummbus/jummbox
