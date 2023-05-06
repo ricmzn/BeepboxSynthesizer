@@ -4,7 +4,7 @@
 [ext_resource type="Script" path="res://import.gd" id="2_pr67v"]
 [ext_resource type="Script" path="res://play_pause.gd" id="3_nv74c"]
 [ext_resource type="Script" path="res://toggle_channel.gd" id="4_6hrjy"]
-[ext_resource type="Texture2D" uid="uid://2bsqyi3t3la2" path="res://space.png" id="5_g7wbr"]
+[ext_resource type="Texture2D" uid="uid://2spb8jkh7yl7" path="res://space.png" id="5_g7wbr"]
 
 [sub_resource type="AudioStreamGenerator" id="AudioStreamGenerator_8yxxe"]
 buffer_length = 0.1
@@ -65,6 +65,8 @@ script = ExtResource("2_pr67v")
 
 [node name="URLEntry" type="LineEdit" parent="ScrollContainer/MarginContainer/CenterContainer/MediaPlayer"]
 layout_mode = 2
+placeholder_text = "Beepbox URL Hash"
+alignment = 1
 
 [node name="PlayPause" type="Button" parent="ScrollContainer/MarginContainer/CenterContainer/MediaPlayer"]
 layout_mode = 2
