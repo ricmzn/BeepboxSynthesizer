@@ -94,6 +94,16 @@ max_value = 259.0
 value = 88.0
 ticks_on_borders = true
 
+[node name="VolumeLabel" type="Label" parent="ScrollContainer/MarginContainer/CenterContainer/MediaPlayer"]
+layout_mode = 2
+text = "Volume: 100%"
+horizontal_alignment = 1
+
+[node name="VolumeSlider" type="HSlider" parent="ScrollContainer/MarginContainer/CenterContainer/MediaPlayer"]
+layout_mode = 2
+value = 100.0
+ticks_on_borders = true
+
 [node name="ProgressBar" type="ProgressBar" parent="ScrollContainer/MarginContainer/CenterContainer/MediaPlayer"]
 layout_mode = 2
 

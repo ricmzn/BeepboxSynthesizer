@@ -8,11 +8,14 @@ extends Container
 @onready var playButton: Button = $PlayPause
 @onready var bpmLabel: Label = $BPMLabel
 @onready var bpmSlider: Slider = $BPMSlider
+@onready var volumeLabel: Label = $VolumeLabel
+@onready var volumeSlider: Slider = $VolumeSlider
 @onready var progress: ProgressBar = $ProgressBar
 
 func _ready():
 	buttonTemplate.get_parent().remove_child(buttonTemplate)
-	bpmSlider.connect("value_changed", set_bpm)
+	bpmSlider.value_changed.connect(set_bpm)
+	volumeSlider.value_changed.connect(set_volume)
 	update()
 
 func update():
@@ -50,3 +53,7 @@ func set_bpm(tempo: int):
 	if synth != null:
 		synth.eval("synth.song.tempo = %d" % tempo)
 		update_bpm()
+
+func set_volume(percent: int):
+	volumeLabel.text = "Volume: %d%%" % int(percent)
+	AudioServer.set_bus_volume_db(0, linear_to_db(percent / 100.0))
