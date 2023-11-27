@@ -9,8 +9,6 @@ The primary goal is to allow use of smaller music files, as well as experimentat
 * JummBox: https://github.com/jummbus/jummbox (Backward-compatible fork of BeepBox)
 * V8: https://github.com/denoland/rusty_v8
 
-> Note: because [AudioStreamGenerator is currently broken in Godot 4.0.2](https://github.com/godotengine/godot/issues/65155), a custom version of the engine needs to be built with the following patch: https://github.com/godotengine/godot/pull/73162/files, or generated audio will not play.
-
 > Note: the project is currently only tested on Linux, but it should work on Windows if the DLL paths are added to `beepbox_synthesizer.gdextension`
 
 # Building

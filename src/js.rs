@@ -189,6 +189,7 @@ pub fn poll_audio(
     Ok(())
 }
 
+#[repr(C)]
 struct JSInspector {
     base: v8::inspector::V8InspectorClientBase,
 }
@@ -200,6 +201,13 @@ impl v8::inspector::V8InspectorClientImpl for JSInspector {
 
     fn base_mut(&mut self) -> &mut v8::inspector::V8InspectorClientBase {
         &mut self.base
+    }
+
+    unsafe fn base_ptr(this: *const Self) -> *const v8::inspector::V8InspectorClientBase
+    where
+        Self: Sized,
+    {
+        this.offset(0) as *const v8::inspector::V8InspectorClientBase
     }
 
     fn console_api_message(
@@ -305,6 +313,7 @@ impl JSContext {
             context,
             1,
             v8::inspector::StringView::from(b"Inspector" as &[u8]),
+            v8::inspector::StringView::empty(),
         );
 
         // Script scope with globals + error handling

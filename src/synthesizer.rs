@@ -2,11 +2,8 @@ use crate::js::{poll_audio, JSContext};
 use crate::utils::V8ObjectHelpers;
 use anyhow::Context;
 use godot::engine::file_access::ModeFlags;
-use godot::engine::FileAccess;
-use godot::{
-    engine::{AudioStreamGenerator, AudioStreamGeneratorPlayback, AudioStreamPlayer},
-    prelude::*,
-};
+use godot::engine::{AudioStreamGenerator, AudioStreamGeneratorPlayback, FileAccess};
+use godot::{engine::AudioStreamPlayer, prelude::*};
 use std::fs::read_to_string;
 
 const MAX_SAMPLES: usize = 1024 * 1024;
@@ -36,14 +33,14 @@ impl Synthesizer {
     }
 
     #[func]
-    fn import(&mut self, path: GodotString) {
+    fn import(&mut self, path: GString) {
         self.js
             .do_scoped("", |scope| {
                 let path = path.to_string();
                 let contents = if path.starts_with("res://") {
                     FileAccess::open(path.clone().into(), ModeFlags::READ)
                         .with_context(|| format!("failed to open {path}"))?
-                        .get_as_text(true)
+                        .get_as_text()
                         .to_string()
                 } else {
                     read_to_string(&path).with_context(|| format!("could not read {path}"))?
@@ -70,15 +67,13 @@ impl Synthesizer {
     }
 
     #[func]
-    fn eval(&mut self, code: GodotString) -> Variant {
-        // FIXME: Workaround for https://github.com/godot-rust/gdext/issues/195
-        let code = std::mem::ManuallyDrop::new(code);
+    fn eval(&mut self, code: GString) -> Variant {
         self.js.run("eval_bool", &code.to_string()).unwrap()
     }
 }
 
 #[godot_api]
-impl AudioStreamPlayerVirtual for Synthesizer {
+impl IAudioStreamPlayer for Synthesizer {
     fn init(mut base: Base<AudioStreamPlayer>) -> Self {
         // Set up Godot audio player
         let mut generator = AudioStreamGenerator::new();
@@ -108,21 +103,20 @@ impl AudioStreamPlayerVirtual for Synthesizer {
             .run("synth_init", SYNTH_INIT)
             .expect("failed to initialize synthethizer");
 
-        self.base.play(0.0);
+        self.base.play();
     }
 
     fn process(&mut self, _delta: f64) {
-        if !self.has_stream_playback() {
+        if !self.base.has_stream_playback() {
             return;
         }
 
         let mut playback = self
+            .base
             .get_stream_playback()
             .context("stream playback is missing")
             .unwrap()
-            .try_cast::<AudioStreamGeneratorPlayback>()
-            .context("stream playback is not an instance of AudioStreamGeneratorPlayback")
-            .unwrap();
+            .cast::<AudioStreamGeneratorPlayback>();
 
         let result = self.js.do_scoped("_process", |scope| {
             let global = scope.get_current_context().global(scope);

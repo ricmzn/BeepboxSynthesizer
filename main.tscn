@@ -4,7 +4,7 @@
 [ext_resource type="Script" path="res://import.gd" id="2_pr67v"]
 [ext_resource type="Script" path="res://play_pause.gd" id="3_nv74c"]
 [ext_resource type="Script" path="res://toggle_channel.gd" id="4_6hrjy"]
-[ext_resource type="Texture2D" uid="uid://2spb8jkh7yl7" path="res://space.png" id="5_g7wbr"]
+[ext_resource type="Texture2D" uid="uid://budiicfacn3ie" path="res://space.png" id="5_g7wbr"]
 
 [sub_resource type="AudioStreamGenerator" id="AudioStreamGenerator_8yxxe"]
 buffer_length = 0.1
@@ -99,10 +99,10 @@ layout_mode = 2
 
 [node name="FileDialog" type="FileDialog" parent="."]
 unique_name_in_owner = true
-initial_position = 1
-title = "Open a File"
-size = Vector2i(900, 600)
 mode = 2
+title = "Open a File"
+initial_position = 1
+size = Vector2i(900, 600)
 ok_button_text = "Open"
 file_mode = 0
 filters = PackedStringArray("*.json")
