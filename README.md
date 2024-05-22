@@ -1,36 +1,29 @@
 # Introduction
 
-This project uses a custom Rust-based GDExtension library to run the BeepBox/JummBox synthesizer within Godot 4, using V8.
+This project uses a custom GDExtension library written in Rust to run the JummBox JavaScript-based synthesizer within Godot 4 with [V8](https://v8.dev/), the JavaScript engine used in Node.js.
 
-The primary goal is to allow use of smaller music files, as well as experimentation with procedural music (using BeepBox's JavaScript API).
+The goals are to allow use of smaller music files (using procedural playback instead of rendered WAV or MP3 files), and experimenting with with dynamic music playback (using JummBox's JavaScript APIs).
 
-* Rust GDExtension: https://github.com/godot-rust/gdext
-* BeepBox: https://github.com/johnnesky/beepbox
+## References
+
+* Rust GDExtension Library for Godot: https://github.com/godot-rust/gdext
+* BeepBox: https://github.com/johnnesky/beepbox (Upstream code for JummBox)
 * JummBox: https://github.com/jummbus/jummbox (Backward-compatible fork of BeepBox)
-* V8: https://github.com/denoland/rusty_v8
-
-> Note: the project is currently only tested on Linux, but it should work on Windows if the DLL paths are added to `beepbox_synthesizer.gdextension`
+* Rust V8 Library: https://github.com/denoland/rusty_v8
 
 # Building
 
-You will need:
+## Required Tools
 
-* Rust: https://www.rust-lang.org/tools/install
-* Node.js: https://nodejs.org
+* Godot 4.2+: https://godotengine.org/download 
+* Rust 1.78+: https://www.rust-lang.org/tools/install
+* Node.js 20+: https://nodejs.org
 
-Instructions:
+## Instructions
 
-* Build the latest Godot 4 stable release with the AudioStreamGenerator patch added (not required if already fixed upstream)
-* Clone this repository with the `--recursive` flag so submodules are also fetched (more about them: https://git-scm.com/book/en/v2/Git-Tools-Submodules)
-* Build the JummBox synthesizer
-  - Enter `dependencies/jummbox` and run `npm install && npm update && npm run build-synth`
-  - `npm update` is only required on NodeJS v18 or later due to some depdendencies being incompatible unless manually updated
-* Build the Rust crate .dll/.so by running `cargo build` in the root of the project
-* Run this project with the custom Godot 4 editor build
-
-# Troubleshooting
-
-* The editor crashes with SIGILL (Illegal Instruction) on startup!
-  - I haven't look into why this happens the first time after setting up the project from a clean state, but usually, building the .dll/.so a second time lets the editor launch correctly.
-* I load a JSON, click play, but there is no sound!
-  - Make sure you have built and ran Godot with the AudioStreamGenerator patch. The current official release (4.0.2) has no issues playing static audio files, but it will not play script-generated audio until the feature is fixed.
+* Clone this repository with the `--recursive` flag to include submodules
+  - Git submodules manual: https://git-scm.com/book/en/v2/Git-Tools-Submodules
+* Build JummBox
+  - Enter the `dependencies/jummbox` directory and run: `npm install && npm update && npm run build-synth`
+* Build this project by running `cargo build` in the root of the repository
+* Open this project in Godot
