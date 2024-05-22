@@ -41,8 +41,10 @@ func update():
 		playButton.disabled = true
 
 func _physics_process(delta):
-	if synth != null and synth.eval("synth.song != null"):
+	if synth != null and synth.eval("synth.song != null") and synth.eval("synth.song.channels.length > 0"):
 		progress.value = synth.eval("synth.playhead") / synth.eval("synth.song.barCount") * 100
+	else:
+		progress.value = 0
 
 func update_bpm():
 	var tempo: int = synth.eval("synth.song.tempo")
