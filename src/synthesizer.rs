@@ -1,10 +1,12 @@
-use crate::js::{poll_audio, JSContext};
-use crate::utils::V8ObjectHelpers;
-use anyhow::Context;
-use godot::engine::file_access::ModeFlags;
-use godot::engine::{AudioStreamGenerator, AudioStreamGeneratorPlayback, FileAccess};
-use godot::{engine::AudioStreamPlayer, prelude::*};
 use std::fs::read_to_string;
+
+use anyhow::Context;
+use godot::{engine::AudioStreamPlayer, prelude::*};
+use godot::engine::{AudioStreamGenerator, AudioStreamGeneratorPlayback, FileAccess};
+use godot::engine::file_access::ModeFlags;
+
+use crate::js::{JSContext, poll_audio};
+use crate::utils::V8ObjectHelpers;
 
 const MAX_SAMPLES: usize = 1024 * 1024;
 const SYNTH_INIT: &str = "synth = new beepbox.Synth()";
@@ -12,9 +14,8 @@ const SYNTH_INIT: &str = "synth = new beepbox.Synth()";
 #[derive(GodotClass)]
 #[class(base = AudioStreamPlayer)]
 pub struct Synthesizer {
-    #[base]
     base: Base<AudioStreamPlayer>,
-    buffer: PackedVector2Array,
+    audio_buffer: PackedVector2Array,
     js: JSContext,
 }
 
@@ -74,45 +75,31 @@ impl Synthesizer {
 
 #[godot_api]
 impl IAudioStreamPlayer for Synthesizer {
-    fn init(mut base: Base<AudioStreamPlayer>) -> Self {
-        // Set up Godot audio player
-        let mut generator = AudioStreamGenerator::new();
+    fn init(base: Base<AudioStreamPlayer>) -> Self {
+        let mut generator = AudioStreamGenerator::new_gd();
         generator.set_mix_rate(44100.0);
         generator.set_buffer_length(0.1);
-        base.set_stream(generator.upcast());
 
-        let mut buffer = PackedVector2Array::new();
-        buffer.resize(MAX_SAMPLES);
+        let mut audio_buffer = PackedVector2Array::new();
+        audio_buffer.resize(MAX_SAMPLES);
 
-        Synthesizer {
+        let mut synthesizer = Synthesizer {
             base,
-            buffer,
+            audio_buffer,
             js: JSContext::new().expect("failed to create js context"),
-        }
-    }
+        };
 
-    fn ready(&mut self) {
-        self.js
-            .run(
-                "beepbox_synth.js",
-                include_str!("../dependencies/jummbox/website/beepbox_synth.js"),
-            )
-            .unwrap();
-
-        self.js
-            .run("synth_init", SYNTH_INIT)
-            .expect("failed to initialize synthethizer");
-
-        self.base.play();
+        synthesizer.base_mut().set_stream(generator.upcast());
+        synthesizer
     }
 
     fn process(&mut self, _delta: f64) {
-        if !self.base.has_stream_playback() {
+        if !self.base_mut().has_stream_playback() {
             return;
         }
 
         let mut playback = self
-            .base
+            .base_mut()
             .get_stream_playback()
             .context("stream playback is missing")
             .unwrap()
@@ -137,12 +124,12 @@ impl IAudioStreamPlayer for Synthesizer {
                 required_samples,
                 audio_context,
                 script_processor,
-                &mut self.buffer,
+                &mut self.audio_buffer,
             )?;
 
             // Fill Godot's sound buffer
             for i in 0..required_samples {
-                playback.push_frame(self.buffer.get(i));
+                playback.push_frame(self.audio_buffer.get(i));
             }
 
             Ok(())
@@ -155,5 +142,20 @@ impl IAudioStreamPlayer for Synthesizer {
 
     fn exit_tree(&mut self) {
         self.pause();
+    }
+
+    fn ready(&mut self) {
+        self.js
+            .run(
+                "beepbox_synth.js",
+                include_str!("../dependencies/jummbox/website/beepbox_synth.js"),
+            )
+            .unwrap();
+
+        self.js
+            .run("synth_init", SYNTH_INIT)
+            .expect("failed to initialize synthethizer");
+
+        self.base_mut().play();
     }
 }
