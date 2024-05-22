@@ -4,6 +4,7 @@
 /.import
 /.godot
 /.mono
+/.idea
 *.import
 *.dll
 *.exe
