@@ -1,0 +1,60 @@
+name: Rust GDExtension
+
+on:
+- push
+- pull_request
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: "1"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Cache
+      uses: actions/cache@v4
+      with:
+        path: target
+        key: linux-test
+    - name: Build JummBox
+      run: cd dependencies/jummbox && npm install && npm update && npm run build-synth
+    - name: Run tests
+      run: cargo test --verbose
+
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Cache
+      uses: actions/cache@v4
+      with:
+        path: target
+        key: linux
+    - name: Build JummBox
+      run: cd dependencies/jummbox && npm install && npm update && npm run build-synth
+    - name: Build GDExtension
+      run: cargo build --verbose --release
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        path: target/release/libbeepbox_synthesizer.so
+
+  build-windows:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Cache
+      uses: actions/cache@v4
+      with:
+        path: target
+        key: windows
+    - name: Build JummBox
+      run: cd dependencies/jummbox && npm install && npm update && npm run build-synth
+    - name: Build GDExtension
+      run: cargo build --verbose --release
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        path: target/release/libbeepbox_synthesizer.dll
