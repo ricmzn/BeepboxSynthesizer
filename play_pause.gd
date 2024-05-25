@@ -1,15 +1,15 @@
 extends Button
 
-@onready var synth: Synthesizer = %Synthesizer
+@onready var player: AudioStreamPlayer = %AudioStreamPlayer
 
 var playing = false
 
 func _on_Button_pressed():
 	if playing:
-		synth.pause()
+		player.pause()
 		playing = false
 		text = "Play"
 	else:
-		synth.resume()
+		player.resume()
 		playing = true
 		text = "Pause"

@@ -6,8 +6,7 @@
 [ext_resource type="Script" path="res://toggle_channel.gd" id="4_6hrjy"]
 [ext_resource type="Texture2D" uid="uid://budiicfacn3ie" path="res://space.png" id="5_g7wbr"]
 
-[sub_resource type="AudioStreamGenerator" id="AudioStreamGenerator_8yxxe"]
-buffer_length = 0.1
+[sub_resource type="AudioStreamBeepBox" id="AudioStreamBeepBox_xudt5"]
 
 [node name="Main" type="Control"]
 layout_mode = 3
@@ -107,6 +106,12 @@ ticks_on_borders = true
 [node name="ProgressBar" type="ProgressBar" parent="ScrollContainer/MarginContainer/CenterContainer/MediaPlayer"]
 layout_mode = 2
 
+[node name="AudioStreamPlayer" type="AudioStreamPlayer" parent="."]
+unique_name_in_owner = true
+stream = SubResource("AudioStreamBeepBox_xudt5")
+volume_db = -25.0
+autoplay = true
+
 [node name="FileDialog" type="FileDialog" parent="."]
 unique_name_in_owner = true
 mode = 2
@@ -116,12 +121,6 @@ size = Vector2i(900, 600)
 ok_button_text = "Open"
 file_mode = 0
 filters = PackedStringArray("*.json")
-
-[node name="Synthesizer" type="Synthesizer" parent="."]
-unique_name_in_owner = true
-stream = SubResource("AudioStreamGenerator_8yxxe")
-volume_db = -25.0
-autoplay = true
 
 [connection signal="pressed" from="ScrollContainer/MarginContainer/CenterContainer/MediaPlayer/Import" to="ScrollContainer/MarginContainer/CenterContainer/MediaPlayer/Import" method="_on_Import_pressed"]
 [connection signal="text_submitted" from="ScrollContainer/MarginContainer/CenterContainer/MediaPlayer/URLEntry" to="ScrollContainer/MarginContainer/CenterContainer/MediaPlayer/Import" method="_on_url_entry_text_submitted"]

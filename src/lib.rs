@@ -1,25 +1,22 @@
 use godot::prelude::*;
-use once_cell::sync::OnceCell;
-use std::time::Instant;
 
-mod js;
-mod synthesizer;
-mod utils;
+use crate::js_bridge::init::initialize_v8;
 
-pub static REFERENCE_TIME: OnceCell<Instant> = OnceCell::new();
+mod js_bridge;
+mod classes;
 
-struct BeepboxSynthesizer;
+struct BeepBoxSynthesizer;
 
 #[gdextension]
-unsafe impl ExtensionLibrary for BeepboxSynthesizer {
+unsafe impl ExtensionLibrary for BeepBoxSynthesizer {
     fn on_level_init(level: InitLevel) {
         if let InitLevel::Scene = level {
             std::env::set_var("RUST_LIB_BACKTRACE", "1");
+            std::env::set_var("RUST_BACKTRACE", "1");
             std::panic::set_hook(Box::new(|info| {
-                godot_print!("{info}");
+                godot_error!("[Panic] {info}");
             }));
-            REFERENCE_TIME.set(Instant::now()).unwrap();
-            js::init_v8();
+            initialize_v8();
         }
     }
 }

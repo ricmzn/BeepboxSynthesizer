@@ -2,7 +2,7 @@ extends Button
 
 @onready var initial_text = text
 
-var synth: Synthesizer
+var player: AudioStreamPlayer
 var description = ""
 var active = true
 var index = 0
@@ -18,10 +18,10 @@ func _ready():
 
 func _on_Button_pressed():
 	if active:
-		synth.eval("synth.song.channels[%d].muted = true" % index)
+		player.get_stream_playback().eval("synth.song.channels[%d].muted = true" % index)
 		active = false
 		update_text()
 	else:
-		synth.eval("synth.song.channels[%d].muted = false" % index)
+		player.get_stream_playback().eval("synth.song.channels[%d].muted = false" % index)
 		active = true
 		update_text()

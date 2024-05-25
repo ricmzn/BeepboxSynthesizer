@@ -1,8 +1,9 @@
-use anyhow::Context;
-use godot::prelude::*;
 use std::convert::Into;
 
-pub(crate) trait V8ObjectHelpers {
+use anyhow::Context;
+use godot::prelude::*;
+
+pub trait V8ObjectHelpers {
     fn get<'a>(
         &self,
         scope: &mut v8::HandleScope<'a>,
@@ -42,7 +43,7 @@ impl<'a> V8ObjectHelpers for v8::Local<'a, v8::Object> {
     }
 }
 
-pub(crate) fn v8_value_to_godot_variant(
+pub fn v8_value_to_godot_variant(
     scope: &mut v8::HandleScope,
     value: v8::Local<v8::Value>,
 ) -> Variant {
@@ -51,6 +52,11 @@ pub(crate) fn v8_value_to_godot_variant(
         value if value.is_number() => Variant::from(value.number_value(scope).unwrap()),
         value if value.is_boolean() => Variant::from(value.boolean_value(scope)),
         value if value.is_string() => Variant::from(value.to_rust_string_lossy(scope)),
+        value if value.is_array() => {
+            let array = Array::<Variant>::new();
+            godot_warn!("TODO: js array -> array conversion");
+            Variant::from(array)
+        }
         value if value.is_object() => {
             let dict = Dictionary::new();
             godot_warn!("TODO: js object -> dict conversion");
