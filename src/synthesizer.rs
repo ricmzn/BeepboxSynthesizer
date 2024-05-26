@@ -78,19 +78,18 @@ impl IAudioStreamPlayer for Synthesizer {
     fn init(base: Base<AudioStreamPlayer>) -> Self {
         let mut generator = AudioStreamGenerator::new_gd();
         generator.set_mix_rate(44100.0);
-        generator.set_buffer_length(0.1);
+        generator.set_buffer_length(1.0);
 
         let mut audio_buffer = PackedVector2Array::new();
         audio_buffer.resize(MAX_SAMPLES);
 
-        let mut synthesizer = Synthesizer {
+        base.to_gd().set_stream(generator.upcast());
+
+        Self {
             base,
             audio_buffer,
             js: JSContext::new().expect("failed to create js context"),
-        };
-
-        synthesizer.base_mut().set_stream(generator.upcast());
-        synthesizer
+        }
     }
 
     fn process(&mut self, _delta: f64) {
