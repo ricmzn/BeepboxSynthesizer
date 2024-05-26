@@ -129,7 +129,7 @@ impl IAudioStreamPlayer for Synthesizer {
 
             // Fill Godot's sound buffer
             for i in 0..required_samples {
-                playback.push_frame(self.audio_buffer.get(i));
+                playback.push_frame(self.audio_buffer.get(i).unwrap());
             }
 
             Ok(())
