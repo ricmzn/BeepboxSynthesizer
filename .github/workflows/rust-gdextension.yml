@@ -43,6 +43,7 @@ jobs:
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
       with:
+        name: beepbox-synthesizer-linux-x86_64-${{ github.sha }}
         path: target/release/libbeepbox_synthesizer.so
 
   build-windows:
@@ -63,4 +64,5 @@ jobs:
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
       with:
-        path: target/release/libbeepbox_synthesizer.dll
+        name: beepbox-synthesizer-windows-x86_64-${{ github.sha }}
+        path: target/release/beepbox_synthesizer.dll
