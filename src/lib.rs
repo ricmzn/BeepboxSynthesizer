@@ -1,8 +1,10 @@
-use godot::prelude::*;
-use once_cell::sync::OnceCell;
 use std::time::Instant;
 
+use godot::prelude::*;
+use once_cell::sync::OnceCell;
+
 mod js;
+mod js_console;
 mod synthesizer;
 mod utils;
 
@@ -19,7 +21,6 @@ unsafe impl ExtensionLibrary for BeepboxSynthesizer {
                 godot_print!("{info}");
             }));
             REFERENCE_TIME.set(Instant::now()).unwrap();
-            js::init_v8();
         }
     }
 }

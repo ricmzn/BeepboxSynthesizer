@@ -1,12 +1,17 @@
 use std::fs::read_to_string;
+use std::io;
 
-use anyhow::Context;
+use anyhow::{anyhow, Context};
+use godot::engine::{
+    file_access::ModeFlags, AudioStreamGenerator, AudioStreamGeneratorPlayback, FileAccess,
+    IAudioStreamPlayer,
+};
 use godot::{engine::AudioStreamPlayer, prelude::*};
-use godot::engine::{AudioStreamGenerator, AudioStreamGeneratorPlayback, FileAccess};
-use godot::engine::file_access::ModeFlags;
+use rquickjs::{function::This, Function, Object, Value};
+use rquickjs::prelude::Rest;
 
-use crate::js::{JSContext, poll_audio};
-use crate::utils::V8ObjectHelpers;
+use crate::js::{poll_audio, JSContext};
+use crate::js_console::console_log;
 
 const MAX_SAMPLES: usize = 1024 * 1024;
 const SYNTH_INIT: &str = "synth = new beepbox.Synth()";
@@ -16,52 +21,47 @@ const SYNTH_INIT: &str = "synth = new beepbox.Synth()";
 pub struct Synthesizer {
     base: Base<AudioStreamPlayer>,
     audio_buffer: PackedVector2Array,
-    js: JSContext,
+    js_context: JSContext,
 }
 
 #[godot_api]
 impl Synthesizer {
     #[func]
     fn resume(&mut self) {
-        self.js
+        self.js_context
             .run("resume", "synth.resetEffects(); synth.play()")
             .unwrap();
     }
 
     #[func]
     fn pause(&mut self) {
-        self.js.run("pause", "synth.pause()").unwrap();
+        self.js_context.run("pause", "synth.pause()").unwrap();
     }
 
     #[func]
     fn import(&mut self, path: GString) {
-        self.js
-            .do_scoped("", |scope| {
+        self.js_context
+            .with_context(|ctx| {
                 let path = path.to_string();
                 let contents = if path.starts_with("res://") {
                     FileAccess::open(path.clone().into(), ModeFlags::READ)
-                        .with_context(|| format!("failed to open {path}"))?
+                        .ok_or_else(|| io_error(io::ErrorKind::NotFound, &path))?
                         .get_as_text()
                         .to_string()
                 } else {
-                    read_to_string(&path).with_context(|| format!("could not read {path}"))?
+                    read_to_string(&path).map_err(|err| io_error(err.kind(), &path))?
                 };
 
-                let json_string =
-                    v8::String::new(scope, &contents).context("could not build v8 string")?;
+                let song_json = ctx.json_parse(contents)?;
 
-                let synth: v8::Local<v8::Object> = scope
-                    .get_current_context()
-                    .global(scope)
-                    .get(scope, "synth")?
-                    .try_into()?;
+                let synth: Object = ctx.globals().get("synth")?;
 
-                let set_song: v8::Local<v8::Function> = synth
-                    .get(scope, "setSong")?
-                    .try_into()
-                    .context("synth.setSong not defined")?;
+                let set_song: Function = synth.get("setSong")?;
 
-                set_song.call(scope, synth.into(), &[json_string.into()]);
+                set_song.call((This(synth.clone()), song_json))?;
+
+                let song: Option<Object> = synth.get("song")?;
+
                 Ok(())
             })
             .unwrap();
@@ -69,7 +69,7 @@ impl Synthesizer {
 
     #[func]
     fn eval(&mut self, code: GString) -> Variant {
-        self.js.run("eval_bool", &code.to_string()).unwrap()
+        self.js_context.run("eval", &code.to_string()).unwrap()
     }
 }
 
@@ -88,7 +88,7 @@ impl IAudioStreamPlayer for Synthesizer {
         Self {
             base,
             audio_buffer,
-            js: JSContext::new().expect("failed to create js context"),
+            js_context: JSContext::new().expect("failed to create js context"),
         }
     }
 
@@ -104,25 +104,25 @@ impl IAudioStreamPlayer for Synthesizer {
             .unwrap()
             .cast::<AudioStreamGeneratorPlayback>();
 
-        let result = self.js.do_scoped("_process", |scope| {
-            let global = scope.get_current_context().global(scope);
-            let audio_context = global.get(scope, "activeAudioContext").unwrap();
+        let result = self.js_context.with_context(|ctx| {
+            let audio_context: Value = ctx.globals().get("activeAudioContext")?;
             if audio_context.is_undefined() {
                 return Ok(());
             }
-            let audio_context: v8::Local<v8::Object> = audio_context.try_into().unwrap();
-            let script_processor: v8::Local<v8::Object> =
-                audio_context.get(scope, "scriptProcessor")?.try_into()?;
+
+            let audio_context = audio_context.as_object().unwrap();
+
+            let script_processor: Object = audio_context.get("scriptProcessor")?;
 
             // Ask godot how much data needs to be filled
             let required_samples = playback.get_frames_available() as usize;
 
             // Pull data from Beepbox
             poll_audio(
-                scope,
+                ctx,
                 required_samples,
-                audio_context,
-                script_processor,
+                &audio_context,
+                &script_processor,
                 &mut self.audio_buffer,
             )?;
 
@@ -144,17 +144,21 @@ impl IAudioStreamPlayer for Synthesizer {
     }
 
     fn ready(&mut self) {
-        self.js
+        self.js_context
             .run(
                 "beepbox_synth.js",
                 include_str!("../dependencies/jummbox/website/beepbox_synth.js"),
             )
-            .unwrap();
+            .expect("failed to run beepbox script");
 
-        self.js
+        self.js_context
             .run("synth_init", SYNTH_INIT)
-            .expect("failed to initialize synthethizer");
+            .expect("failed to initialize beepbox synthethizer");
 
         self.base_mut().play();
     }
+}
+
+fn io_error(kind: io::ErrorKind, path: &str) -> rquickjs::Error {
+    rquickjs::Error::Io(io::Error::new(kind, anyhow!("failed to open {}", path)))
 }
